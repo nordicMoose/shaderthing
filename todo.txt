@@ -1,2 +1,3 @@
 -add multi pass rendering (several fragment shaders)
--maybe more input data
+-maybe add more input data
+-add help with --help, and maybe generate a help file / test shader

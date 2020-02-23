@@ -132,6 +132,9 @@ void Start()
         return;
     }
 
+    free(fragmentShader);
+    free(fshaderstr);
+
     printf("Using shader: %s\n",shaderFile);
 
     //glValidateProgram(shaderProgram);
