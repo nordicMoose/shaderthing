@@ -111,7 +111,7 @@ void Start()
     res = 123;
     shaderProgram = 0;
 
-    const char* fshaderstr = ReadFile(shaderFile);
+    char* fshaderstr = ReadFile(shaderFile);
     if(fshaderstr == 0)
     {
         printf("Failed to load shader, exiting...");
