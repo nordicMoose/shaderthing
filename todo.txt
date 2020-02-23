@@ -1,0 +1,2 @@
+-add multi pass rendering (several fragment shaders)
+-maybe more input data
