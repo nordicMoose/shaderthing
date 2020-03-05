@@ -66,7 +66,7 @@ const char* fragmentShaderStub ="#version 460 core\n"
                                 "layout(pixel_center_integer) in vec4 gl_FragCoord;"
                                 "vec4 FragCoord = gl_FragCoord;\n";
 
-const char* attribs[] = {"VertexPosition"};
+//const char* attribs[] = {"VertexPosition"};
 
 GLuint shaderProgram;
 
@@ -104,14 +104,159 @@ char* shaderFile;
 //    -1.0,1.0,1.0
 //};
 
-GLuint res;
+//GLuint res;
+
+//Count how many times str2 occurs in str, in the range from str start.
+int StrNum(char* str, const char* str2, int range)
+{
+    int i = 0;
+    char* at = str;
+    if(range == 0) return 0;
+    while(1)
+    {
+        if((int)(at-str)>=range)break;
+        at = strstr(at,str2);
+        if(!at || (int)(at-str)>=range)break;
+        i++;
+        at+=strlen(str2);
+    }
+    return i;
+}
+
+//Replace all instances of "target" in "str" with "replace"
+void StrRls(char** str, const char* target, const char* replace)
+{
+    int at = 0;
+    while(1)
+    {
+        char* tg = strstr((*str)+at,target);
+        if(!tg)break;
+        char* temp1 = calloc((int)(tg-(*str))+1, sizeof(char));
+        strncpy(temp1,(*str),(int)(tg-(*str)));
+        char* temp2 = calloc(strlen(tg+strlen(target))+1,sizeof(char));
+        strcpy(temp2,tg+strlen(target));
+        char* nstr = calloc(strlen((*str))+(strlen(replace)-strlen(target))+1,sizeof(char));
+        strcpy(nstr,temp1);
+        strcat(nstr,replace);
+        at = strlen(nstr);
+        strcat(nstr,temp2);
+        free((*str));
+        free(temp1);
+        free(temp2);
+        (*str) = nstr;
+    }
+}
+
+char** fileList;
+int fileC;
+const char* includeStr = "#include";
+const size_t includeStrLen = 8;
+int PreProcess(char** shaderstr, const char* file)
+{
+    fileList = realloc(fileList,++fileC*sizeof(char*));
+    fileList[fileC-1] = calloc(strlen(file)+1,sizeof(char));
+    strcpy(fileList[fileC-1],file);
+    
+    StrRls(shaderstr,"\r\n","\n");//maybe not required
+
+    //process "#include <file>" statement
+    char* found = strstr(*shaderstr,includeStr);
+    while(found)
+    {
+        size_t open = strspn(found+includeStrLen," \t");
+
+        char* tmp = found+includeStrLen+open;
+
+        if(*(tmp) != '<')
+        {
+            int lineNum = StrNum(*shaderstr,"\n",found-*shaderstr);
+            printf("ERROR: Expected \"<\" after \"#include\" in %s, at line %d\n",file,lineNum+1);
+            return 0;
+        }
+
+        char* close = strchr(tmp,'>');
+        char* nl = strchr(tmp,'\n');
+
+        if(nl < close || close == 0)
+        {
+            int lineNum = StrNum(*shaderstr,"\n",found-*shaderstr);
+            printf("ERROR: Non closed include statement in %s, at line %d\n",file,lineNum+1);
+            return 0;
+        }
+
+        if(tmp == close)
+        {
+            int lineNum = StrNum(*shaderstr,"\n",found-*shaderstr);
+            printf("ERROR: Empty include statement in %s, at line %d\n",file,lineNum+1);
+            return 0;
+        }
+
+        char* ifile = calloc(close - (tmp+1) + 1, sizeof(char));
+        strncpy(ifile,tmp+1,close - (tmp+1));
+        StrRls(&ifile," ","");
+
+        char* icontent = ReadFile(ifile);
+        for(int i = 0; i < fileC; i++)
+        {
+            if(!strcmp(ifile,fileList[i]))
+            {
+                int lineNum = StrNum(*shaderstr,"\n",found-*shaderstr);
+                printf("ERROR: Looping include statement in %s, at line %d\n",file,lineNum+1);
+                return 0;
+            }
+        }
+
+        if(!icontent)
+        {
+            int lineNum = StrNum(*shaderstr,"\n",found-*shaderstr);
+            printf("ERROR: Error reading included file in %s, at line %d\n",file,lineNum+1);
+            return 0;
+        }
+
+        if(!PreProcess(&icontent,ifile))
+            return 0;
+
+        char* tmp1 = calloc(found-(*shaderstr)+1,sizeof(char));//might need -1 after found
+        strncpy(tmp1,*shaderstr,found-(*shaderstr));
+
+        char* tmp2 = calloc(strlen(close+1)+1,sizeof(char));
+        strcpy(tmp2,close+1);
+
+        char* tresult = calloc(strlen(tmp1)+strlen(tmp2)+strlen(icontent),sizeof(char));
+        strcpy(tresult,tmp1);
+        strcat(tresult,icontent);
+        strcat(tresult,tmp2);
+
+        free(*shaderstr);
+        *shaderstr = tresult;
+
+        found = strstr(*shaderstr,includeStr);
+    }
+
+    free(fileList[fileC-1]);
+    fileList = realloc(fileList,--fileC*sizeof(char*));
+
+    return 1;
+}
 
 void Start()
 {
-    res = 123;
+    fileList = 0;
+    fileC = 0;
+    //res = 123;
     shaderProgram = 0;
 
     char* fshaderstr = ReadFile(shaderFile);
+
+    if(!PreProcess(&fshaderstr,shaderFile))
+    {
+        printf("Encountered error(s) while pre-processing shader! Exiting...");
+        ExitApplication();
+        return;
+    }
+
+    //printf("\n%s\n",fshaderstr);
+
     if(fshaderstr == 0)
     {
         printf("Failed to load shader, exiting...");
@@ -123,7 +268,7 @@ void Start()
     strcpy(fragmentShader,fragmentShaderStub);
     strcat(fragmentShader,fshaderstr);
 
-    shaderProgram = ConstructShader(vertexShader,fragmentShader,attribs,1);
+    shaderProgram = ConstructShader(vertexShader,fragmentShader);//,attribs,1);
 
     if(shaderProgram == 0)
     {

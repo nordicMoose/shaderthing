@@ -44,7 +44,7 @@ GLuint LoadShader(GLenum shaderType, const char *shaderString)
     return _shader;
 }
 
-GLuint ConstructShader(const char* vertexShader, const char* fragmentShader, const char** attributes, int num_attributes)
+GLuint ConstructShader(const char* vertexShader, const char* fragmentShader)//, const char** attributes, int num_attributes)
 {
     GLuint vShader;
     GLuint fShader;
@@ -65,8 +65,8 @@ GLuint ConstructShader(const char* vertexShader, const char* fragmentShader, con
     glAttachShader(programObject, fShader);
 
     //Bind attributes  
-    for (size_t i = 0; i < num_attributes; ++i)
-        glBindAttribLocation(programObject, i, attributes[i]);
+    //for (size_t i = 0; i < num_attributes; ++i)
+    //    glBindAttribLocation(programObject, i, attributes[i]);
     
 
     //Link the program
