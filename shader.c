@@ -43,6 +43,47 @@ char* ReadFile(const char* filename)
     return result;
 }
 
+//Count how many times str2 occurs in str, in the range from str start.
+int StrNum(char* str, const char* str2, int range)
+{
+    int i = 0;
+    char* at = str;
+    if(range == 0) return 0;
+    while(1)
+    {
+        if((int)(at-str)>=range)break;
+        at = strstr(at,str2);
+        if(!at || (int)(at-str)>=range)break;
+        i++;
+        at+=strlen(str2);
+    }
+    return i;
+}
+
+//Replace all instances of "target" in "str" with "replace"
+void StrRls(char** str, const char* target, const char* replace)
+{
+    int at = 0;
+    while(1)
+    {
+        char* tg = strstr((*str)+at,target);
+        if(!tg)break;
+        char* temp1 = calloc((int)(tg-(*str))+1, sizeof(char));
+        strncpy(temp1,(*str),(int)(tg-(*str)));
+        char* temp2 = calloc(strlen(tg+strlen(target))+1,sizeof(char));
+        strcpy(temp2,tg+strlen(target));
+        char* nstr = calloc(strlen((*str))+(strlen(replace)-strlen(target))+1,sizeof(char));
+        strcpy(nstr,temp1);
+        strcat(nstr,replace);
+        at = strlen(nstr);
+        strcat(nstr,temp2);
+        free((*str));
+        free(temp1);
+        free(temp2);
+        (*str) = nstr;
+    }
+}
+
 const char* vertexShader = "#version 460 core\n"
 "layout (location = 0) in vec3 VertexPostion;"
 "void main()"
@@ -93,6 +134,8 @@ GLint uMousePositionLocation = 0;
 
 char* shaderFile;
 
+int preprocessorOutput;
+
 //quad with z -1..1
 //GLfloat sqvert[] = {
 //    1.0,1.0,1.0,
@@ -105,47 +148,6 @@ char* shaderFile;
 //};
 
 //GLuint res;
-
-//Count how many times str2 occurs in str, in the range from str start.
-int StrNum(char* str, const char* str2, int range)
-{
-    int i = 0;
-    char* at = str;
-    if(range == 0) return 0;
-    while(1)
-    {
-        if((int)(at-str)>=range)break;
-        at = strstr(at,str2);
-        if(!at || (int)(at-str)>=range)break;
-        i++;
-        at+=strlen(str2);
-    }
-    return i;
-}
-
-//Replace all instances of "target" in "str" with "replace"
-void StrRls(char** str, const char* target, const char* replace)
-{
-    int at = 0;
-    while(1)
-    {
-        char* tg = strstr((*str)+at,target);
-        if(!tg)break;
-        char* temp1 = calloc((int)(tg-(*str))+1, sizeof(char));
-        strncpy(temp1,(*str),(int)(tg-(*str)));
-        char* temp2 = calloc(strlen(tg+strlen(target))+1,sizeof(char));
-        strcpy(temp2,tg+strlen(target));
-        char* nstr = calloc(strlen((*str))+(strlen(replace)-strlen(target))+1,sizeof(char));
-        strcpy(nstr,temp1);
-        strcat(nstr,replace);
-        at = strlen(nstr);
-        strcat(nstr,temp2);
-        free((*str));
-        free(temp1);
-        free(temp2);
-        (*str) = nstr;
-    }
-}
 
 char** fileList;
 int fileC;
@@ -255,6 +257,16 @@ void Start()
         return;
     }
 
+    if(preprocessorOutput)
+    {
+        char* outfilename = calloc(strlen(shaderFile)+4,sizeof(char));
+        strcpy(outfilename,shaderFile);
+        strcat(outfilename,".pr");
+        FILE* of = fopen(outfilename,"w");
+        fprintf(of,"%s",fshaderstr);
+        fclose(of);
+    }
+
     //printf("\n%s\n",fshaderstr);
 
     if(fshaderstr == 0)
@@ -342,6 +354,7 @@ void Render()
 int main(int argc, char** argv)
 {
     int width = 1000, height = 1000;
+    preprocessorOutput = 0;
     if(argc == 1)
     {
         if(FileExists("shader1.shader"))
@@ -362,7 +375,7 @@ int main(int argc, char** argv)
 
     for(int i = 1; i < argc; i++)
     {
-        if((!strcmp(argv[i],"-w") || !strcmp(argv[i],"--width")) && i+1 < argc)
+        if(!strcmp(argv[i],"-w") && i+1 < argc)
         {
             long w = 0;
             if(_StringToLongB(argv[i+1],&w,F_NONEGATIVE | F_NOZERO,10))
@@ -370,13 +383,18 @@ int main(int argc, char** argv)
                 width = w;
             }
         }
-        else if((!strcmp(argv[i],"-h") || !strcmp(argv[i],"--height")) && i+1 < argc)
+        else if(!strcmp(argv[i],"-h") && i+1 < argc)
         {
             long h = 0;
             if(_StringToLongB(argv[i+1],&h,F_NONEGATIVE | F_NOZERO,10))
             {
                 height = h;
             }
+        }
+
+        else if(!strcmp(argv[i],"-e"))
+        {
+           preprocessorOutput = 1;
         }
     }
 

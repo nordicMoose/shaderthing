@@ -20,7 +20,15 @@ Inspired by shadertoy, this will allow you play with shaders on the desktop.
 
 ### Usage
 
-Start program from the command line to load a specific shader. Shader file name must be the first argument. Window size can be set with -w and -h, or --width and --height. Default window size is 1000x1000. If no arguments are given, program will look for a file called "shader1.shader".
+- Start program from the command line to load a specific shader. Shader file name must be the first argument.
+- If no arguments are given, program will look for a file called "shader1.shader".
+- Options: 
+
+    | Option | Description |
+    | :--- | :--- |
+    | -w | Window width, default 1000 |
+    | -h | Window height, default 1000 |
+    | -e | (flag) output pre-processed code to file |
 
 Example start command:
 
