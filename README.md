@@ -4,7 +4,7 @@ Program to render glsl shaders
 Inspired by shadertoy, this will allow you play with shaders on the desktop.
 
 ### Info
-- Shaders are written in standard glsl, without requiring the #version preprocessor directive.
+- Shaders are written in standard glsl
 - Added C style #include preprocessor directive
 - 00 is in the lower left corner
 - Output vec4 color must be put into DiffuseColor
